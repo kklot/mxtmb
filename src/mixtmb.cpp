@@ -74,7 +74,7 @@ Type objective_function<Type>::operator() ()
       a_vec[cc * nA + aa] = exp(ate);
     }
   }
-  REPORT(beta_sm); REPORT(beta_age);
+  REPORT(beta_sm);
   REPORT(beta0); REPORT(beta1); REPORT(cc_vec);
   REPORT(age_id); REPORT(rdims);
   REPORT(a_vec); REPORT(b_vec); REPORT(g_vec);
