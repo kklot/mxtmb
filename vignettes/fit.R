@@ -1,9 +1,7 @@
-source("dodom.R")
-
 library(ktools)
+
 setwd('~/GitHub/mx_paper/')
-devtools::load_all('mixtmb')
-cd('../..')
+roxygen2::roxygenise('mixtmb'); devtools::load_all('mixtmb')
 
 mn_selfreport <- dodo(sx=1, backward=FALSE)
 mn_backreport <- dodo(sx=1, backward=TRUE)
