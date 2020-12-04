@@ -1,8 +1,7 @@
+#' @export
 dodo = function(sx=1, dhs, backward=FALSE, fixpars = FALSE, ICAR=TRUE, n_cores=4,
     test=FALSE, sub_set=0) {
 
-library(ktools)
-library(data.table)
 library(tidyverse)
 library(magrittr)
 set.seed(2020)
