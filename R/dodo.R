@@ -1,4 +1,4 @@
-dodo = function(sx=1, backward=FALSE, fixpars = FALSE, ICAR=TRUE, n_cores=4,
+dodo = function(sx=1, dhs, backward=FALSE, fixpars = FALSE, ICAR=TRUE, n_cores=4,
     test=FALSE, sub_set=0) {
 
 library(ktools)
@@ -11,7 +11,6 @@ meta <- list() # track used metadata for post-processing
 meta$seed <- 2020
 
 # Read and prep data
-dhs <- fread('/Volumes/kklot/dhs/PA.csv.bz2')
 
 dhs %<>% 
     mutate_if(is.integer, as.double) %>%
