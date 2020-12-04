@@ -24,7 +24,8 @@ ISO_SSA = name2iso(ktools:::.UN_SSA)
 
 # who report?
 if (!backward) {
-    dt = dhs[sex==sx & ISO_A3 %in% ISO_SSA]
+    dt = dhs %>% 
+        filter(sex==sx & ISO_A3 %in% ISO_SSA)
 } 
 else {
     sy = ifelse(sx==1, 2, 1) # other sex
@@ -47,28 +48,30 @@ meta$cc_id <- cc_id
 R_cc       <- diag(n_cc_id)
 R_cc_rank  <- qr(R_cc)$rank # not really needed
 
-dt[cc_id, on="ISO_A3", cc_id := i.cc_id]
+dt %<>% left_join(cc_id, 'ISO_A3')
 
 # Spline
 meta$num_knots <- 10
-beta_knots <- dt[, sort(unique(age))] %>% 
+beta_knots <- dt %>% pull(age) %>% unique %>% sort %>% 
     {seq(min(.), max(.), length.out=meta$num_knots)}
 
 # TMB metadata and data
-data = list(
-    # data
-    pna           = dt[, partner],
-    log_age       = dt[, log(age)], 
-    age_id        = dt[, sort(unique(age))],
-    beta_knots    = beta_knots,
-    mu_beta0      = c( 0,  5),
-    sd_beta0      = c(.1,  1),
-    mu_beta1      = c(-1,  1),
-    sd_beta1      = c(.1, .1),
-    sd_cc         = c(1, .1),
-    cc_id         = dt[, cc_id-1],
-    R_cc          = R_cc,
-    R_cc_rank     = R_cc_rank
+data = with(dt, 
+    list(
+        # data
+        pna        = partner,
+        log_age    = log(age), 
+        age_id     = sort(unique(age)),
+        beta_knots = beta_knots,
+        mu_beta0   = c( 0,  5),
+        sd_beta0   = c(.1,  1),
+        mu_beta1   = c(-1,  1),
+        sd_beta1   = c(.1, .1),
+        sd_cc      = c(1, .1),
+        cc_id      = cc_id-1,
+        R_cc       = R_cc,
+        R_cc_rank  = R_cc_rank
+    )
 )
 
 init = list(
