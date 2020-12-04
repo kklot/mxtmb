@@ -18,6 +18,11 @@ Type objective_function<Type>::operator() ()
   // Data model - log-logistic parameters
   PARAMETER_VECTOR(beta0);
   PARAMETER_VECTOR(beta1);
+  
+  DATA_VECTOR(beta_knots);
+  PARAMETER_VECTOR(beta_sm);
+  tmbutils::splinefun<Type> beta_spline(beta_knots, beta_sm);
+
   // priors
   DATA_VECTOR(mu_beta0);
   DATA_VECTOR(mu_beta1);
@@ -45,23 +50,28 @@ Type objective_function<Type>::operator() ()
     Type 
       eta   = beta0[0] + beta1[0] * log_age(i) + cc_vec(cc_id(i)),
       alpha = exp(eta), 
-      beta  = exp(beta0[1] + beta1[1] * eta),
-      gamma = exp(beta0[2] + beta1[2] * eta);
+      beta  = exp(beta_spline(Type(exp(log_age[i])))),
+      gamma = exp(beta0[1] + beta1[1] * log(beta));
       dll  -= log(ktools::ft_llogisI(pna(i), beta, alpha, gamma));
   }
   dll += prior;
   // Reporting
   int nC = cc_vec.size(), nA = age_id.size();
-  vector<Type> rdims(2), a_vec(nC * nA), b_vec(nC * nA), g_vec(nC * nA);
+  vector<Type> rdims(2), a_vec(nC * nA), b_vec(nC * nA), g_vec(nC * nA), beta_age(nA);
   rdims << nA, nC;
+
+  for (int i = 0; i < nA; ++i)
+    beta_age[i] = exp(beta_spline(Type(age_id[i])));
+
   for (int cc = 0; cc < nC; ++cc) {
     for (int aa = 0; aa < nA; ++aa) {
-      Type ate = beta0[0] + beta1[0] * log(age_id(aa)) + cc_vec(cc);
+      Type ate = beta0[0] + beta1[0] * log(age_id[aa]) + cc_vec[cc];
       a_vec[cc * nA + aa] = exp(ate);
-      b_vec[cc * nA + aa] = exp(beta0[1] + beta1[1] * ate);
-      g_vec[cc * nA + aa] = exp(beta0[2] + beta1[2] * ate);
+      b_vec[cc * nA + aa] = beta_age[aa];
+      g_vec[cc * nA + aa] = exp(beta0[1] + beta1[1] * log(beta_age[aa]));
     }
   }
+  REPORT(beta_age);
   REPORT(beta0); REPORT(beta1); REPORT(cc_vec);
   REPORT(age_id); REPORT(rdims);
   REPORT(a_vec); REPORT(b_vec); REPORT(g_vec);

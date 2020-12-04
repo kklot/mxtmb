@@ -58,16 +58,22 @@ R_cc_rank  <- qr(R_cc)$rank # not really needed
 
 dt[cc_id, on="ISO_A3", cc_id := i.cc_id]
 
+# Spline
+meta$num_knots <- 10
+beta_knots <- dt[, sort(unique(age))] %>% 
+    {seq(min(.), max(.), length.out=meta$num_knots)}
+
 # TMB metadata and data
 data = list(
     # data
     pna           = dt[, partner],
     log_age       = dt[, log(age)], 
     age_id        = dt[, sort(unique(age))],
-    mu_beta0      = c( 0,   1,  5),
-    sd_beta0      = c(.1,  .1,  1),
-    mu_beta1      = c(-1, -.5,  1),
-    sd_beta1      = c(.1,  .1, .1),
+    beta_knots    = beta_knots,
+    mu_beta0      = c( 0,  5),
+    sd_beta0      = c(.1,  1),
+    mu_beta1      = c(-1,  1),
+    sd_beta1      = c(.1, .1),
     sd_cc         = c(1, .1),
     cc_id         = dt[, cc_id-1],
     R_cc          = R_cc,
@@ -77,6 +83,7 @@ data = list(
 init = list(
     beta0        = data$mu_beta0,
     beta1        = data$mu_beta1,
+    beta_sm      = rep(1, meta$num_knots),
     cc_vec       = rep(0, n_cc_id),
     log_cc_e     = log(sd2prec(1))
 )
@@ -89,7 +96,7 @@ else
 opts = list(
     data       = data,
     parameters = init,
-    random     = c('beta0', 'beta1', 'cc_vec'),
+    random     = char(beta0, beta1, cc_vec, beta_sm),
     silent     = 0,
     DLL        = 'mixtmb', 
     map        = fixpars
