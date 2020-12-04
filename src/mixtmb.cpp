@@ -21,7 +21,10 @@ Type objective_function<Type>::operator() ()
   
   DATA_VECTOR(beta_knots);
   PARAMETER_VECTOR(beta_sm);
+  
+  Type prior = 0.0;
   tmbutils::splinefun<Type> beta_spline(beta_knots, beta_sm);
+  prior -= dnorm(beta_sm, Type(3), Type(1), true).sum();
 
   // priors
   DATA_VECTOR(mu_beta0);
@@ -29,7 +32,6 @@ Type objective_function<Type>::operator() ()
   DATA_VECTOR(sd_beta0);
   DATA_VECTOR(sd_beta1);
 
-  Type prior = 0.0;
   for (int i = 0; i < beta0.size(); ++i) {
     prior -= dnorm(beta0[i], mu_beta0[i], sd_beta0[i], true);
     prior -= dnorm(beta1[i], mu_beta1[i], sd_beta1[i], true);
