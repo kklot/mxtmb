@@ -23,8 +23,9 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(beta_sm);
   
   Type prior = 0.0;
-  prior -= dnorm(beta_sm, Type(3), Type(1), true).sum();
+  prior -= dnorm(beta_sm, Type(1), Type(1), true).sum();
   tmbutils::splinefun<Type> beta_spline(beta_knots, exp(beta_sm));
+  // evaluating this at real age return shape parameter in true scale
 
   // priors
   DATA_VECTOR(mu_beta0);
@@ -52,25 +53,25 @@ Type objective_function<Type>::operator() ()
     Type 
       eta   = beta0[0] + beta1[0] * log_age(i) + cc_vec(cc_id(i)),
       alpha = exp(eta), 
-      beta  = exp(beta_spline(Type(exp(log_age[i])))),
+      beta  = beta_spline(Type(exp(log_age[i]))),
       gamma = exp(beta0[1] + beta1[1] * log(beta));
       dll  -= log(ktools::ft_llogisI(pna(i), beta, alpha, gamma));
   }
   dll += prior;
   // Reporting
   int nC = cc_vec.size(), nA = age_id.size();
-  vector<Type> rdims(2), a_vec(nC * nA), b_vec(nC * nA), g_vec(nC * nA), beta_age(nA);
+  vector<Type> rdims(2), a_vec(nC * nA), b_vec(nA), g_vec(nA);
   rdims << nA, nC;
 
-  for (int i = 0; i < nA; ++i)
-    beta_age[i] = exp(beta_spline(Type(age_id[i])));
+  for (int i = 0; i < nA; ++i) {
+    b_vec[i] = beta_spline(Type(age_id[i]));
+    g_vec[i] = exp(beta0[1] + beta1[1] * log(b_vec[i]));
+  }
 
   for (int cc = 0; cc < nC; ++cc) {
     for (int aa = 0; aa < nA; ++aa) {
       Type ate = beta0[0] + beta1[0] * log(age_id[aa]) + cc_vec[cc];
       a_vec[cc * nA + aa] = exp(ate);
-      b_vec[cc * nA + aa] = beta_age[aa];
-      g_vec[cc * nA + aa] = exp(beta0[1] + beta1[1] * log(beta_age[aa]));
     }
   }
   REPORT(beta_sm); REPORT(beta_age);
