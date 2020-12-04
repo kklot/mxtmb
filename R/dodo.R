@@ -65,7 +65,7 @@ data = with(dt,
         beta_knots = beta_knots,
         mu_beta0   = c( 0,  5),
         sd_beta0   = c(.1,  1),
-        mu_beta1   = c(-1,  1),
+        mu_beta1   = c(-1, -2),
         sd_beta1   = c(.1, .1),
         sd_cc      = c(1, .1),
         cc_id      = cc_id-1,
@@ -77,7 +77,7 @@ data = with(dt,
 init = list(
     beta0        = data$mu_beta0,
     beta1        = data$mu_beta1,
-    beta_sm      = rep(1, meta$num_knots),
+    beta_sm      = rep(log(10), meta$num_knots),
     cc_vec       = rep(0, n_cc_id),
     log_cc_e     = log(sd2prec(1))
 )
