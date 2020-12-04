@@ -23,8 +23,8 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(beta_sm);
   
   Type prior = 0.0;
-  tmbutils::splinefun<Type> beta_spline(beta_knots, beta_sm);
   prior -= dnorm(beta_sm, Type(3), Type(1), true).sum();
+  tmbutils::splinefun<Type> beta_spline(beta_knots, exp(beta_sm));
 
   // priors
   DATA_VECTOR(mu_beta0);
@@ -73,7 +73,7 @@ Type objective_function<Type>::operator() ()
       g_vec[cc * nA + aa] = exp(beta0[1] + beta1[1] * log(beta_age[aa]));
     }
   }
-  REPORT(beta_age);
+  REPORT(beta_sm); REPORT(beta_age);
   REPORT(beta0); REPORT(beta1); REPORT(cc_vec);
   REPORT(age_id); REPORT(rdims);
   REPORT(a_vec); REPORT(b_vec); REPORT(g_vec);
