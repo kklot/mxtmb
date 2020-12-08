@@ -48,6 +48,8 @@ R_cc_rank  <- qr(R_cc)$rank # not really needed
 
 dt %<>% left_join(cc_id, 'ISO_A3')
 
+age_id <- dt %>% pull(age) %>% unique %>% sort
+
 # Spline
 meta$num_knots <- 10
 beta_knots <- dt %>% pull(age) %>% unique %>% sort %>% 
@@ -58,8 +60,8 @@ data = with(dt,
     list(
         # data
         pna        = partner,
-        log_age    = log(age), 
-        age_id     = sort(unique(age)),
+        age        = age, 
+        age_id     = age_id,
         beta_knots = beta_knots,
         mu_beta0   = c( 0,  5),
         sd_beta0   = c(.1,  1),
