@@ -36,7 +36,7 @@ else {
 }
 
 if (sub_set > 0)
-    dt = dt[, .SD[sample(.N, ifelse(.N > sub_set,  sub_set, .N))], ISO_A3]
+    dt %<>% group_by(ISO_A3) %>% sample_n(min(n(), sub_set))
 
 # Country things
 isoindata  <- unique(dt$ISO_A3)
