@@ -22,8 +22,7 @@ ISO_SSA = name2iso(ktools:::.UN_SSA)
 
 # who report?
 if (!backward) {
-    dt = dhs %>% 
-        filter(sex==sx & ISO_A3 %in% ISO_SSA)
+    dt = dhs %>% filter(sex==sx & ISO_A3 %in% ISO_SSA)
 } 
 else {
     sy = ifelse(sx==1, 2, 1) # other sex
@@ -61,10 +60,8 @@ data = with(dt,
         age        = age, 
         age_id     = age_id,
         age_knots  = age_knots,
-        mu_beta0   = c( 0,  1, 5),
-        sd_beta0   = c(.1, .1, 1),
-        mu_beta1   = c(-2), # gamma
-        sd_beta1   = c(.1), # gamma
+        mu_beta0   = c(0,  0,  0, 0),
+        sd_beta0   = c(1,  1, .1, 1),
         sd_cc      = c(1, .1),
         cc_id      = cc_id-1,
         R_cc       = R_cc,
@@ -74,9 +71,10 @@ data = with(dt,
 
 init = list(
     beta0        = data$mu_beta0,
-    beta1        = data$mu_beta1,
-    beta_sm      = rep(0, meta$num_knots),
-    alpha_sm     = rep(0, meta$num_knots),
+    mu_sm        = rep(0, meta$num_knots),
+    si_sm        = rep(0, meta$num_knots),
+    nu_sm        = rep(0, meta$num_knots),
+    ta_sm        = rep(0, meta$num_knots),
     cc_vec       = rep(0, n_cc_id),
     log_cc_e     = log(sd2prec(1))
 )
@@ -89,7 +87,7 @@ else
 opts = list(
     data       = data,
     parameters = init,
-    random     = char(beta0, beta1, cc_vec, beta_sm, alpha_sm),
+    random     = char(beta0, cc_vec, mu_sm, si_sm, nu_sm, ta_sm),
     silent     = 0,
     DLL        = 'mixtmb', 
     map        = fixpars
@@ -107,9 +105,10 @@ obj$env$inner.control$tol10 = 0
 fit = nlminb(obj$par, obj$fn, obj$gr)
 # Report
 rp  <- obj$report()
-est <- to_array(rp, 'a_vec', isoindata) %>% 
-    left_join(to_array(rp, 'b_vec', isoindata)) %>% 
-    left_join(to_array(rp, 'g_vec', isoindata)) %>%
+est <- to_array(rp, 'mu_vec', isoindata) %>% 
+    left_join(to_array(rp, 'si_vec', isoindata)) %>% 
+    left_join(to_array(rp, 'nu_vec', isoindata)) %>%
+    left_join(to_array(rp, 'ta_vec', isoindata)) %>%
     arrange(ISO_A3)
 
 o = list(obj=obj, fit=fit, meta=meta, rp=rp, est=est)

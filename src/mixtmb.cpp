@@ -16,27 +16,41 @@ Type objective_function<Type>::operator() ()
   DATA_INTEGER(R_cc_rank);
 
   PARAMETER_VECTOR(beta0);
-  PARAMETER_VECTOR(beta1);  
-  // priors
   DATA_VECTOR(mu_beta0); DATA_VECTOR(sd_beta0);
-  DATA_VECTOR(mu_beta1); DATA_VECTOR(sd_beta1);
 
   Type prior = 0.0;
   for (int i = 0; i < beta0.size(); ++i)
     prior -= dnorm(beta0[i], mu_beta0[i], sd_beta0[i], true);
-  prior -= dnorm(beta1[0], mu_beta1[0], sd_beta1[0], true);
 
   // Splines
   DATA_VECTOR(age_knots);
-  PARAMETER_VECTOR(beta_sm);
-  PARAMETER_VECTOR(alpha_sm);
+  PARAMETER_VECTOR(mu_sm);
+  PARAMETER_VECTOR(si_sm);
+  PARAMETER_VECTOR(nu_sm);
+  PARAMETER_VECTOR(ta_sm);
+
+  prior -= dnorm(mu_sm[0], Type(0), Type(1), true) -
+    dnorm(si_sm[0], Type(0), Type(1), true) -
+    dnorm(nu_sm[0], Type(0), Type(1), true) -
+    dnorm(ta_sm[0], Type(0), Type(1), true);
+
+  for (int i = 1; i < age_knots.size(); ++i) {
+    mu_sm[i] = mu_sm[i-1] + mu_sm[i] * 0.1;
+    si_sm[i] = si_sm[i-1] + si_sm[i] * 0.1;
+    nu_sm[i] = nu_sm[i-1] + nu_sm[i] * 0.1;
+    ta_sm[i] = ta_sm[i-1] + ta_sm[i] * 0.1;
+  }
   
-  prior -= dnorm(beta_sm, Type(0), Type(1), true).sum() -
-           dnorm(alpha_sm, Type(0), Type(1), true).sum(); // estimate sd?
+  // prior -= dnorm(mu_sm, Type(0), Type(1), true).sum() -
+  //          dnorm(si_sm, Type(0), Type(1), true).sum() - 
+  //          dnorm(nu_sm, Type(0), Type(1), true).sum() - 
+  //          dnorm(ta_sm, Type(0), Type(1), true).sum();// estimate sd?
 
   tmbutils::splinefun<Type>
-    beta_spline(age_knots, beta_sm), 
-    alpha_spline(age_knots, alpha_sm);
+     mu_spline(age_knots, mu_sm, 1), 
+     si_spline(age_knots, si_sm, 1),
+     nu_spline(age_knots, nu_sm, 1),
+     ta_spline(age_knots, ta_sm, 1); // natural spline
 
   // countries spatial
   PARAMETER_VECTOR  (cc_vec);
@@ -50,31 +64,42 @@ Type objective_function<Type>::operator() ()
   
   // Data likelihood
   for (int i = 0; i < pna.size(); i++) {
-    Type 
-      alpha = exp(beta0[0] + alpha_spline(Type(age[i])) + cc_vec[cc_id[i]]),
-      beta  = exp(beta0[1] +  beta_spline(Type(age[i]))),
-      gamma = exp(beta0[2] + beta1[0] * log(beta) );
-    dll  -= log(ktools::ft_llogisI(pna(i), beta, alpha, gamma));
+    Type
+      age_i = age[i],
+      mu    = exp(beta0[0] + mu_spline(age_i) + cc_vec[cc_id[i]]),
+      si    = exp(beta0[1] + si_spline(age_i)),
+      nu    =     beta0[2] + nu_spline(age_i),
+      ta    = exp(beta0[3] + ta_spline(age_i)); 
+    dll  -= dSHASHo(pna[i], mu, si, nu, ta, true);
   }
   dll += prior;
 
   // Reporting
+  
   int nC = cc_vec.size(), nA = age_id.size();
-  vector<Type> rdims(2), a_vec(nC * nA), b_vec(nA), g_vec(nA);
+
+  vector<Type> 
+    mu_vec(nC * nA),
+    si_vec(nA), 
+    nu_vec(nA),
+    ta_vec(nA),
+    rdims(2);
+
   rdims << nA, nC;
 
   for (int i = 0; i < nA; ++i) {
-    b_vec[i] = exp(beta0[1] +  beta_spline(Type(age_id[i])));
-    g_vec[i] = exp(beta0[2] + beta1[0] * log(b_vec[i]));
+    Type aa  = age_id[i];
+    si_vec[i]    = exp(beta0[1] + si_spline(aa)); 
+    nu_vec[i]    =     beta0[2] + nu_spline(aa); 
+    ta_vec[i]    = exp(beta0[3] + ta_spline(aa)); 
   }
 
   for (int cc = 0; cc < nC; ++cc)
     for (int aa = 0; aa < nA; ++aa)
-      a_vec[cc * nA + aa] = exp(beta0[0] + alpha_spline(Type(age_id[aa])) + cc_vec[cc]);
+      mu_vec[cc * nA + aa] = exp(beta0[0] + mu_spline(Type(age_id[aa])) + cc_vec[cc]);
 
-  REPORT(beta_sm); REPORT(alpha_sm);
-  REPORT(beta0); REPORT(beta1); REPORT(cc_vec);
-  REPORT(age_id); REPORT(rdims);
-  REPORT(a_vec); REPORT(b_vec); REPORT(g_vec);
+  REPORT(mu_sm); REPORT(si_sm); REPORT(nu_sm); REPORT(ta_sm);
+  REPORT(beta0); REPORT(cc_vec); REPORT(age_id); REPORT(rdims);
+  REPORT(mu_vec); REPORT(si_vec); REPORT(nu_vec); REPORT(ta_vec);
   return dll;
 }
