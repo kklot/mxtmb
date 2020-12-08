@@ -52,17 +52,15 @@ age_id <- dt %>% pull(age) %>% unique %>% sort
 
 # Spline
 meta$num_knots <- 10
-beta_knots <- dt %>% pull(age) %>% unique %>% sort %>% 
-    {seq(min(.), max(.), length.out=meta$num_knots)}
+age_knots <- dt$age %>% quantile(probs=seq(0, 1, length.out=meta$num_knots))
 
 # TMB metadata and data
 data = with(dt, 
     list(
-        # data
         pna        = partner,
         age        = age, 
         age_id     = age_id,
-        beta_knots = beta_knots,
+        age_knots  = age_knots,
         mu_beta0   = c( 0,  5),
         sd_beta0   = c(.1,  1),
         mu_beta1   = c(-1, -2),
