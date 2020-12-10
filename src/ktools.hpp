@@ -11,6 +11,14 @@ using namespace Eigen;
   
 #define _eps 1e-8 // An alternative limit argument for the first-order IGRMF
 
+// Penalize splines
+template<class Type>
+Type p_spline(vector<Type> betas, Type penalty, Eigen::SparseMatrix<Type> S) {
+  Type o = 0.5 * S.rows() * log(penalty) - 
+           0.5 * penalty * density::GMRF(S).Quadform(betas);
+  return o;
+}
+
 // Constraint space-time interaction if use a vector input
 template<class Type>
 Type constraint2D(Type * v, int n_rows, int n_cols, 
