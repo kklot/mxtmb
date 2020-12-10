@@ -50,19 +50,27 @@ dt %<>% left_join(cc_id, 'ISO_A3')
 age_id <- dt %>% pull(age) %>% unique %>% sort
 
 # Spline
-meta$num_knots <- 10
-age_knots <- dt$age %>% quantile(probs=seq(0, 1, length.out=meta$num_knots))
+gam_S <- mgcv::gam(partner ~ -1 + s(age, bs = 'cs'), data=dt, fit=FALSE)
+S     <- gam_S$smooth[[1]]$S[[1]] %>% as('sparseMatrix')
+X     <- gam_S$X
+P     <- mgcv::PredictMat(gam_S$smooth[[1]], data = data.frame(age=age_id))
+num_basis <- nrow(S)
 
 # TMB metadata and data
 data = with(dt, 
     list(
-        pna        = partner,
-        age        = age, 
+        # meta
         age_id     = age_id,
-        age_knots  = age_knots,
-        mu_beta0   = c(0,  0,  0, 0),
-        sd_beta0   = c(1,  1, .1, 1),
-        sd_cc      = c(1, .1),
+        # response
+        pna        = partner,
+        # splines and design matrix (gamlss)
+        mu_beta0   = c( 2,  -2,   0, -0.5),
+        sd_beta0   = c(.1,  .1, 0.1,  0.1),
+        S          = as(S, 'sparseMatrix'),
+        X          = X,
+        P          = P,
+        # spatial
+        sd_cc      = c(1, 0.1),
         cc_id      = cc_id-1,
         R_cc       = R_cc,
         R_cc_rank  = R_cc_rank
@@ -71,23 +79,24 @@ data = with(dt,
 
 init = list(
     beta0        = data$mu_beta0,
-    mu_sm        = rep(0, meta$num_knots),
-    si_sm        = rep(0, meta$num_knots),
-    nu_sm        = rep(0, meta$num_knots),
-    ta_sm        = rep(0, meta$num_knots),
+    mu_sm        = rep(0, num_basis),
+    si_sm        = rep(0, num_basis),
+    nu_sm        = rep(0, num_basis),
+    ta_sm        = rep(0, num_basis),
+    la_sm        = rep(5, 1), # penalize splines/variance of spline coef.
     cc_vec       = rep(0, n_cc_id),
     log_cc_e     = log(sd2prec(1))
 )
 
 if (fixpars)
-    fixpars = tmb_fixit(init, char(log_cc_e))
+    fixpars = tmb_fixit(init, char(la_sm))
 else
     fixpars = NULL
 
 opts = list(
     data       = data,
     parameters = init,
-    random     = char(beta0, cc_vec, mu_sm, si_sm, nu_sm, ta_sm),
+    random     = char(beta0, cc_vec, mu_sm, si_sm, nu_sm, ta_sm, la_sm),
     silent     = 0,
     DLL        = 'mixtmb', 
     map        = fixpars
