@@ -29,12 +29,13 @@ Type objective_function<Type>::operator() ()
   PARAMETER_VECTOR(si_sm);
   PARAMETER_VECTOR(nu_sm);
   PARAMETER_VECTOR(ta_sm);
+  DATA_SCALAR(rw_sd);
   
   // random walk spline
-  prior -= dnorm(diff(mu_sm), Type(0), Type(1), true).sum();
-  prior -= dnorm(diff(si_sm), Type(0), Type(1), true).sum();
-  prior -= dnorm(diff(nu_sm), Type(0), Type(1), true).sum();
-  prior -= dnorm(diff(ta_sm), Type(0), Type(1), true).sum();
+  prior -= dnorm(diff(mu_sm), Type(0), rw_sd, true).sum();
+  prior -= dnorm(diff(si_sm), Type(0), rw_sd, true).sum();
+  prior -= dnorm(diff(nu_sm), Type(0), rw_sd, true).sum();
+  prior -= dnorm(diff(ta_sm), Type(0), rw_sd, true).sum();
 
   // Penalty
   PARAMETER_VECTOR(la_sm);

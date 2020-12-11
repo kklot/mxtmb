@@ -69,6 +69,7 @@ data = with(dt,
         S          = as(S, 'sparseMatrix'),
         X          = X,
         P          = P,
+        rw_sd      = 0.1, 
         # spatial
         sd_cc      = c(1, 0.1),
         cc_id      = cc_id-1,
