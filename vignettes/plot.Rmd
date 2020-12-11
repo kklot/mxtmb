@@ -1,0 +1,229 @@
+# General options and meta data
+
+```{r include=FALSE, echo=FALSE, warnings=FALSE, message=FALSE}
+options(ggplot2.discrete.color = gen_colors(zurich, 12), ggplot2.discrete.fill = gen_colors(zurich, 12))
+basefit <- 'fit/shash'
+```
+
+# Read fitted results
+
+```{r include=FALSE, echo=FALSE, warnings=FALSE, message=FALSE}
+mn_selfreport <- readRDS(file.path(basefit, 'mn_selfreport.rds'))
+mn_backreport <- readRDS(file.path(basefit, 'mn_backreport.rds'))
+wm_selfreport <- readRDS(file.path(basefit, 'wm_selfreport.rds'))
+wm_backreport <- readRDS(file.path(basefit, 'wm_backreport.rds'))
+
+est_comb <- rbind(
+    mn_backreport$est %>% mutate(sex='male', direction = 'other'),
+    mn_selfreport$est %>% mutate(sex='male', direction = 'self'),
+    wm_backreport$est %>% mutate(sex='female', direction = 'other'),
+    wm_selfreport$est %>% mutate(sex='female', direction = 'self')
+)
+```
+
+# parameters comparision
+
+```{r include=FALSE, echo=FALSE, warnings=FALSE, message=FALSE}
+save_to <- 'fig/shash/param_compare_direction'
+dir.create(save_to, recursive=TRUE)
+cd(save_to)
+
+for (cc in unique(est_comb$ISO_A3)) {
+    cat('\r', cc)
+    plot <- est_comb %>%
+        rename(Location=mu_vec, Scale=si_vec, Skew = nu_vec, Kurtosis=ta_vec) %>%
+        filter(ISO_A3==cc) %>% 
+        pivot_longer(-char(ISO_A3, sex, age, direction)) %>% 
+        mutate(name = factor(name, levels=char(Location, Scale, Skew, Kurtosis))) %>% 
+        ggplot() + 
+            geom_rect(aes(xmin=-Inf, ymin=-Inf, xmax=Inf, ymax=Inf, fill=sex), data=tibble(sex=char(male, female)), alpha=.1) +
+            geom_point(aes(age, value, color=direction), alpha=.3) +
+            facet_wrap(char(name, sex), ncol=4, scales='free') + 
+            scale_shape_manual(values=c(1, 3)) +
+            scale_fill_manual(values=c('transparent', 'grey70')) +
+            guides(fill=FALSE) +
+            theme(legend.position=c(.85, 1.17), legend.direction='horizontal', legend.title=element_text(size=8)) +
+            labs(x='Age', color='Source of report', y='Coef.', title=cc)
+    quartz_off(plot, cc, open=0)
+}
+
+cd('-')
+
+```
+
+# Fitted density
+
+```{r include=FALSE, echo=FALSE, warnings=FALSE, message=FALSE}
+fbi <- fread('data/bi_report.csv.bz2')
+
+# fitted density
+save_to <- 'fig/shash/fitted_density_by_country'
+dir.create(save_to)
+cd(save_to)
+
+for (cc in unique(est_comb$ISO_A3)) {
+    cat('\r', cc)
+    plot_ages <- c(18, 20, 25, 30, 40, 50)
+    pages <- seq(10, 60, .5)
+    
+    di <- est_comb %>% filter(ISO_A3==cc)
+    
+    lapply(1:nrow(di), function(x) 
+        dSHASHo(pages, di$mu_vec[x], di$si_vec[x], di$nu_vec[x], di$ta_vec[x])) %>% 
+        do.call('rbind', .) %>%
+        set_colnames(pages) %>% 
+        cbind(dplyr::select(di, age, sex, direction)) %>% 
+        pivot_longer(-char(age, sex, direction), names_to='partner', values_to='dens') %>% 
+        mutate(partner = as.double(partner)) %>% 
+        filter(age %in% plot_ages) -> di
+
+    fbi %>% 
+        filter(age %in% plot_ages & ISO_A3 == cc) %>%   
+        ggplot() + 
+            geom_bar(aes(partner, y=..density.., fill=direction), binwidth=1, position='identity', stat='bin', alpha=.3, linetype='dashed') +
+            facet_wrap(char(sex, age), ncol=6) +
+            geom_line(aes(partner, y=dens, color=direction), di, size=.7) +
+            coord_cartesian(ylim=c(0, .3)) +
+            theme(legend.position=c(.85, 1.2), legend.title=element_text(size=7), legend.direction='horizontal') +
+            scale_fill_manual(values=char(grey40, orange)) +
+            scale_color_manual(values=char(grey10, darkorange)) +
+            labs(title=iso2name(cc), subtitle='Data and fitted', fill='Source of report', color='Source of report', x='Partner age') -> plot
+    quartz_off(plot, cc, open=0)
+}
+
+pdftools::pdf_combine(list.files(), '../fitted_density_by_country.pdf')
+cd('-')
+
+```
+
+# Population
+
+```{r include=FALSE, echo=FALSE, warnings=FALSE, message=FALSE}
+# Population
+pop_male <- fread('data/WPP2019_Male_Single_age.csv.bz2')
+pop_female <- fread('data/WPP2019_Female_Single_age.csv.bz2')
+
+setnames(pop_male, names(pop_male)[c(3, 5, 8)], c('name', 'countrycode','year'))
+setnames(pop_female, names(pop_female)[c(3, 5, 8)], c('name', 'countrycode','year'))
+
+library(countrycode)
+pop_male[, ISO_A3 := countrycode(countrycode, 'un', 'iso3c')]
+pop_female[, ISO_A3 := countrycode(countrycode, 'un', 'iso3c')]
+
+pop_female <- pop_female[!is.na(ISO_A3) & year == 2020]
+pop_male <- pop_male[!is.na(ISO_A3) & year == 2020]
+
+pop <- pop_male[, c(110, 9:109)] %>% 
+  pivot_longer(-ISO_A3, names_to='age', values_to='size') %>% 
+  mutate(sex='male', size=as.numeric(size)*1000, age=as.numeric(age)) %>% 
+  mutate(yob=2020-age)
+
+pop_female[, c(110, 9:109)] %>% 
+  pivot_longer(-ISO_A3, names_to='age', values_to='size') %>% 
+  mutate(sex='female', size=as.numeric(size)*1000, age=as.numeric(age)) %>% 
+  mutate(yob=2020-age) %>% 
+  rbind(pop) -> pop
+fwrite_bz2(pop, 'data/wpp_2020.csv')
+```
+
+# Sexual active
+
+```{r include=FALSE, echo=FALSE, warnings=FALSE, message=FALSE}
+db_par <- readRDS('~/GitHub/db_paper/db_newdata/par23.rds')
+```
+
+# Mismatches counts
+
+- read population
+- compute sexually active
+- assume one partner per active
+    + number of partner
+
+```{r include=FALSE, echo=FALSE, warnings=FALSE, message=FALSE}
+save_to <- 'fig/shash/mismatch/'
+dir.create(save_to)
+cd(save_to)
+
+for (cc in unique(est_comb$ISO_A3)) {
+pop %>% 
+    left_join(filter(db_par, yob==2000), char(ISO_A3, sex)) %>% 
+    mutate(eversex = F_gllogisI(age, lambda, shape, skew)) %>% 
+    mutate(hadsex = size*eversex) %>% 
+    select(ISO_A3, age, sex, hadsex) %>% 
+    filter(age %in% 15:55) %>% 
+    left_join(est_comb, char(ISO_A3, age, sex)) %>% 
+    filter(ISO_A3 == cc) %>% 
+    mutate(dup = length(15:55)) %>% 
+    group_by(sex, age, direction) %>% 
+    uncount(dup, .id = 'pna') %>% 
+    mutate(pna = pna + 14) %>% 
+    mutate(npn = hadsex * dSHASHo(pna, mu_vec, si_vec, nu_vec, ta_vec)) %>% 
+    ungroup() %>% 
+    select(direction, age, sex, pna, npn) %>% 
+    mutate(age2 = if_else(sex=='male', pna, age)) %>% 
+    mutate(pna2 = if_else(sex=='male', age, pna)) %>% 
+    select(direction, age2, sex, pna2, npn) %>% 
+    pivot_wider(names_from=sex, values_from=npn) %>% 
+    mutate(delta = female-male) %>% 
+    mutate(direction = paste0(direction, '-report')) %>% 
+    ggplot() + 
+        geom_tile(aes(age2, pna2, fill=delta)) +
+        facet_wrap('direction') +
+        coord_fixed() + 
+        theme(panel.grid=element_blank(), legend.key.width=unit(.5, 'line'), text=element_text(size=9)) +
+        geom_abline(intercept=0, slope=1, linetype='dashed', color='white') +
+        labs(x = 'Female age', y = 'Male age', title = iso2name(cc), subtitle = 'Mismatches in partner age reporting', fill='Female-Male') +
+        scale_fill_gradientn(colors = hcl.colors(100, 'Cyan-Magenta')) -> plot
+quartz_off(plot, cc, 7, 4, open=1)
+}
+
+pdftools::pdf_combine(list.files(), '../mismatch_count.pdf')
+cd('-')
+
+```
+
+# Mismatches ratio
+
+
+```{r include=FALSE, echo=FALSE, warnings=FALSE, message=FALSE}
+save_to <- 'fig/shash/mismatch_ratio/'
+dir.create(save_to)
+cd(save_to)
+
+for (cc in unique(est_comb$ISO_A3)) {
+pop %>% 
+    left_join(filter(db_par, yob==2000), char(ISO_A3, sex)) %>% 
+    mutate(eversex = F_gllogisI(age, lambda, shape, skew)) %>% 
+    mutate(hadsex = size*eversex) %>% 
+    select(ISO_A3, age, sex, hadsex) %>% 
+    filter(age %in% 15:55) %>% 
+    left_join(est_comb, char(ISO_A3, age, sex)) %>% 
+    filter(ISO_A3 == cc) %>% 
+    mutate(dup = length(15:55)) %>% 
+    group_by(sex, age, direction) %>% 
+    uncount(dup, .id = 'pna') %>% 
+    mutate(pna = pna + 14) %>% 
+    mutate(npn = hadsex * dSHASHo(pna, mu_vec, si_vec, nu_vec, ta_vec)) %>% 
+    ungroup() %>% 
+    select(direction, age, sex, pna, npn) %>% 
+    mutate(npn = ceiling(npn)) %>% 
+    mutate(age2 = if_else(sex=='male', pna, age)) %>% 
+    mutate(pna2 = if_else(sex=='male', age, pna)) %>% 
+    select(direction, age2, sex, pna2, npn) %>% 
+    pivot_wider(names_from=sex, values_from=npn) %>% 
+    mutate(delta = female/male) %>% 
+    mutate(direction = paste0(direction, '-report')) %>% 
+    ggplot() + 
+        geom_tile(aes(age2, pna2, fill=delta)) +
+        facet_wrap('direction') +
+        coord_fixed() + 
+        theme(panel.grid=element_blank(), legend.key.width=unit(.5, 'line'), text=element_text(size=9)) +
+        geom_abline(intercept=0, slope=1, linetype='dashed', color='white') +
+        labs(x = 'Female age', y = 'Male age', title = iso2name(cc), subtitle = 'Mismatches in partner age reporting', fill='Female-Male') +
+        scale_fill_gradientn(trans='log', colors = hcl.colors(100, 'Cyan-Magenta')) -> plot
+quartz_off(plot, cc, 7, 4, open=1)
+}
+
+pdftools::pdf_combine(list.files(), '../mismatch_count.pdf')
+
+```
