@@ -2,7 +2,7 @@
 to_array <- function(rp, par, iso3) {
     array(rp[[par]], rp$rdims) %>% 
         set_colnames(iso3) %>% 
-        set_rownames(rp$age) %>% 
+        set_rownames(rp$age_id) %>% 
         as.data.table(1) %>% 
         rename(age=rn) %>% mutate(age=as.numeric(age)) %>% 
         pivot_longer(-age, names_to='ISO_A3', values_to=par)

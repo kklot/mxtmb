@@ -1,6 +1,6 @@
 #' @export
 dodo = function(sx=1, dhs, backward=FALSE, fixpars = FALSE, ICAR=TRUE, n_cores=4,
-    test=FALSE, sub_set=0) {
+    test=FALSE, sub_set=0, rw_order=1) {
 
 library(tidyverse)
 library(magrittr)
@@ -49,72 +49,72 @@ dt %<>% left_join(cc_id, 'ISO_A3')
 
 age_id <- dt %>% pull(age) %>% unique %>% sort
 
-# Spline
-gam_S <- mgcv::gam(partner ~ -1 + s(age, bs = 'cs'), data=dt, fit=FALSE)
-S     <- gam_S$smooth[[1]]$S[[1]] %>% as('sparseMatrix')
-X     <- gam_S$X
-P     <- mgcv::PredictMat(gam_S$smooth[[1]], data = data.frame(age=age_id))
-num_basis <- nrow(S)
+# Random walk
+n_age_id <- length(age_id)
+R_age    <- genR(n_age_id, rw_order)
 
 # TMB metadata and data
 data = with(dt, 
     list(
         # meta
-        age_id     = age_id,
+        age_id     = age_id - min(age),
         # response
         pna        = partner,
-        # splines and design matrix (gamlss)
-        mu_beta0   = c( 2,  -2,   0, -0.5),
-        sd_beta0   = c(.1,  .1, 0.1,  0.1),
-        S          = as(S, 'sparseMatrix'),
-        X          = X,
-        P          = P,
-        rw_sd      = 0.1, 
+        age        = age - min(age),
+        # random walk
+        mu_beta0   = c( 3,   0,   0,    0),
+        sd_beta0   = c( 1,   1,   1,    1),
+        rw_order   = rw_order,
+        R_age      = R_age,
         # spatial
+        sd_age     = c(1, 0.1),
         sd_cc      = c(1, 0.1),
-        cc_id      = cc_id-1,
-        R_cc       = R_cc,
+        cc_id      = cc_id - 1,
+        R_cc       = R_cc, 
         R_cc_rank  = R_cc_rank
     )
 )
 
 init = list(
     beta0        = data$mu_beta0,
-    mu_sm        = rep(0, num_basis),
-    si_sm        = rep(0, num_basis),
-    nu_sm        = rep(0, num_basis),
-    ta_sm        = rep(0, num_basis),
-    la_sm        = rep(5, 1), # penalize splines/variance of spline coef.
+    mu_sm        = rep(0, n_age_id),
+    si_sm        = rep(0, n_age_id),
+    nu_sm        = rep(0, n_age_id),
+    ta_sm        = rep(0, n_age_id),
+    ln_sm        = rep(log(sd2prec(1)), 4),
     cc_vec       = rep(0, n_cc_id),
-    log_cc_e     = log(sd2prec(1))
+    log_cc_e     = log(sd2prec(10))
 )
 
 if (fixpars)
-    fixpars = tmb_fixit(init, char(la_sm))
+    fixpars = tmb_fixit(init, char(ln_sm))
 else
     fixpars = NULL
 
 opts = list(
     data       = data,
     parameters = init,
-    random     = char(beta0, cc_vec, mu_sm, si_sm, nu_sm, ta_sm, la_sm),
+    random     = char(beta0, cc_vec, mu_sm, si_sm, nu_sm, ta_sm, ln_sm),
     silent     = 0,
     DLL        = 'mixtmb', 
     map        = fixpars
 )
 
-if (test) return(0)
+if (test)
+    browser()
 
 # Fit
 library(TMB)
 openmp(n_cores)
-config(tape.parallel=0, DLL="mixtmb")
-obj = do.call('MakeADFun', opts)
+config(tape.parallel=0, optimize.instantly=0, DLL="mixtmb")
 
+obj = do.call('MakeADFun', opts)
 obj$env$inner.control$tol10 = 0
+obj$env$tracepar = FALSE
 fit = nlminb(obj$par, obj$fn, obj$gr)
-# Report
-rp  <- obj$report()
+
+rp  = obj$report()
+
 est <- to_array(rp, 'mu_vec', isoindata) %>% 
     left_join(to_array(rp, 'si_vec', isoindata)) %>% 
     left_join(to_array(rp, 'nu_vec', isoindata)) %>%
