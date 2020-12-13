@@ -40,7 +40,6 @@ Type objective_function<Type>::operator() ()
   // countries spatial
   DATA_IVECTOR     (cc_id);
   DATA_MATRIX      (R_cc);
-  DATA_INTEGER     (R_cc_rank);
   DATA_VECTOR      (sd_cc);
   PARAMETER_VECTOR (cc_vec);
   PARAMETER        (log_cc_e);
@@ -48,18 +47,26 @@ Type objective_function<Type>::operator() ()
   prior -= ktools::pc_prec(cc_e, sd_cc(0), sd_cc(1));
   prior -= ktools::soft_zero_sum(cc_vec);
   prior -= density::GMRF(ktools::prepare_Q(R_cc, cc_e))(cc_vec); 
-  prior -= (R_cc_rank - cc_vec.size()) * log(sqrt(2*M_PI));
+
+  // ccxage interaction
+  DATA_IVECTOR     (ccxage_id);
+  DATA_MATRIX      (R_ccxage);
+  PARAMETER_VECTOR (ccxage_vec);
+  PARAMETER        (log_ccxage_e);
+  Type ccxage_e = exp(log_ccxage_e);
+  prior -= ktools::pc_prec(ccxage_e, sd_cc(0), sd_cc(1));
+  prior -= ktools::constraint2D(ccxage_vec.data(), age_id.size(), cc_vec.size());
+  prior -= density::GMRF(ktools::prepare_Q(R_ccxage, ccxage_e))(ccxage_vec); 
 
   // Data likelihood
   for (int i = 0; i < pna.size(); i++) {
     Type 
-      mu = exp(beta0[0] + mu_sm[age[i]] + cc_vec[cc_id[i]]),
+      mu = exp(beta0[0] + mu_sm[age[i]] + cc_vec[cc_id[i]] + ccxage_vec[ccxage_id[i]]),
       si = exp(beta0[1] + si_sm[age[i]]), 
       nu =     beta0[2] + nu_sm[age[i]], 
       ta = exp(beta0[3] + ta_sm[age[i]]);    
     dll -= dSHASHo(pna[i], mu, si, nu, ta, true);
   }
-  // CppAD::PrintFor("dll=", dll);
   Type llrp = dll;
   dll += prior;
 
@@ -69,7 +76,8 @@ Type objective_function<Type>::operator() ()
   rdims << nA, nC;
   for (int c = 0; c < nC; ++c)
     for (int a = 0; a < nA; ++a)
-      mu_vec[c * nA + a] = exp(beta0[0] + mu_sm[age_id[a]] + cc_vec[c]);
+      mu_vec[c * nA + a] = exp( beta0[0] + mu_sm[age_id[a]] + cc_vec[c] + ccxage_vec[c * nA + a] );
+
   for (int a = 0; a < nA; ++a) {
       si_vec[a] = exp(beta0[1] + si_sm[age_id[a]]);
       nu_vec[a] =     beta0[2] + nu_sm[age_id[a]];

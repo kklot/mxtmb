@@ -44,14 +44,26 @@ cc_id      <- data.table(ISO_A3 = isoindata, cc_id = 1:n_cc_id)
 meta$cc_id <- cc_id
 R_cc       <- diag(n_cc_id)
 R_cc_rank  <- qr(R_cc)$rank # not really needed
-
 dt %<>% left_join(cc_id, 'ISO_A3')
 
-age_id <- dt %>% pull(age) %>% unique %>% sort
-
 # Random walk
+age_id <- dt %>% pull(age) %>% unique %>% sort
 n_age_id <- length(age_id)
 R_age    <- genR(n_age_id, rw_order)
+
+# Interaction with age
+R_ccxage      = kronecker(R_cc, R_age)
+R_ccxage_rank = qr(R_ccxage)$rank # not really needed
+
+# interaction id
+# - expand.grid run the first argument first which is not what we want
+# - for the kronecker product, need to switch position of expand.grid
+
+ccxage_id = expand.grid(age_id, 1:n_cc_id) %>% 
+  set_colnames(c('age', 'cc_id')) %>% 
+  mutate(ccxage_id = 1:n()) %>%
+  data.table
+dt %<>% left_join(ccxage_id)
 
 # TMB metadata and data
 data = with(dt, 
@@ -66,12 +78,15 @@ data = with(dt,
         sd_beta0   = c( 1,   1,   1,    1),
         rw_order   = rw_order,
         R_age      = R_age,
-        # spatial
         sd_age     = c(1, 0.1),
+        # spatial
         sd_cc      = c(1, 0.1),
         cc_id      = cc_id - 1,
         R_cc       = R_cc, 
-        R_cc_rank  = R_cc_rank
+        R_cc_rank  = R_cc_rank,
+        # interaction
+        ccxage_id  = ccxage_id - 1,
+        R_ccxage   = R_ccxage
     )
 )
 
@@ -83,7 +98,9 @@ init = list(
     ta_sm        = rep(0, n_age_id),
     ln_sm        = rep(log(sd2prec(1)), 4),
     cc_vec       = rep(0, n_cc_id),
-    log_cc_e     = log(sd2prec(10))
+    log_cc_e     = log(sd2prec(10)),
+    ccxage_vec   = rep(0, nrow(R_ccxage)),
+    log_ccxage_e = log(sd2prec(10))
 )
 
 if (fixpars)
@@ -94,7 +111,7 @@ else
 opts = list(
     data       = data,
     parameters = init,
-    random     = char(beta0, cc_vec, mu_sm, si_sm, nu_sm, ta_sm, ln_sm),
+    random     = char(beta0, cc_vec, ccxage_vec, mu_sm, si_sm, nu_sm, ta_sm, ln_sm),
     silent     = 0,
     DLL        = 'mixtmb', 
     map        = fixpars
