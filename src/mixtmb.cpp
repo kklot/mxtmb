@@ -87,8 +87,10 @@ Type objective_function<Type>::operator() ()
   REPORT(llrp);
   REPORT(prior);
   REPORT(prec_sm);
+  REPORT(cc_e); REPORT(ccxage_e);
   REPORT(mu_sm); REPORT(si_sm); REPORT(nu_sm); REPORT(ta_sm);
   REPORT(beta0); REPORT(cc_vec); 
+  REPORT(ccxage_vec);
   REPORT(rdims);
   REPORT(age_id);
   REPORT(mu_vec); REPORT(si_vec); REPORT(nu_vec); REPORT(ta_vec);
