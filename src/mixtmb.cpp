@@ -46,7 +46,7 @@ Type objective_function<Type>::operator() ()
   Type cc_e = exp(log_cc_e);
   prior -= ktools::pc_prec(cc_e, sd_cc(0), sd_cc(1));
   prior -= ktools::soft_zero_sum(cc_vec);
-  prior -= density::GMRF(ktools::prepare_Q(R_cc, cc_e))(cc_vec); 
+  prior += density::GMRF(ktools::prepare_Q(R_cc, cc_e))(cc_vec); 
 
   // ccxage interaction
   DATA_IVECTOR     (ccxage_id);
@@ -56,7 +56,7 @@ Type objective_function<Type>::operator() ()
   Type ccxage_e = exp(log_ccxage_e);
   prior -= ktools::pc_prec(ccxage_e, sd_cc(0), sd_cc(1));
   prior -= ktools::constraint2D(ccxage_vec.data(), age_id.size(), cc_vec.size());
-  prior -= density::GMRF(ktools::prepare_Q(R_ccxage, ccxage_e))(ccxage_vec); 
+  prior += density::GMRF(ktools::prepare_Q(R_ccxage, ccxage_e))(ccxage_vec); 
 
   // Data likelihood
   for (int i = 0; i < pna.size(); i++) {
