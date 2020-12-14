@@ -49,7 +49,7 @@ dt %<>% left_join(cc_id, 'ISO_A3')
 # Random walk
 age_id <- dt %>% pull(age) %>% unique %>% sort
 n_age_id <- length(age_id)
-R_age    <- genR(n_age_id, rw_order)
+R_age    <- genR(n_age_id, rw_order, scale=FALSE)
 
 # Interaction with age
 R_ccxage      = kronecker(R_cc, R_age)
@@ -77,7 +77,7 @@ data = with(dt,
         mu_beta0   = c( 3,   0,   0,    0),
         sd_beta0   = c( 1,   1,   1,    1),
         rw_order   = rw_order,
-        R_age      = R_age,
+        R_age      = as.matrix(R_age),
         sd_age     = c(1, 0.1),
         # spatial
         sd_cc      = c(1, 0.1),
@@ -86,7 +86,7 @@ data = with(dt,
         R_cc_rank  = R_cc_rank,
         # interaction
         ccxage_id  = ccxage_id - 1,
-        R_ccxage   = R_ccxage
+        R_ccxage   = as.matrix(R_ccxage)
     )
 )
 
