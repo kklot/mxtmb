@@ -115,11 +115,10 @@ if (test)
 # Fit
 library(TMB)
 openmp(n_cores)
-config(tape.parallel=0, optimize.instantly=0, DLL="mixtmb")
+config(tape.parallel=0, optimize.instantly=1, DLL="mixtmb")
 
 obj = do.call('MakeADFun', opts)
-obj$env$inner.control$tol10 = 0
-obj$env$tracepar = FALSE
+runSymbolicAnalysis(obj)
 fit = nlminb(obj$par, obj$fn, obj$gr)
 
 rp  = obj$report()
