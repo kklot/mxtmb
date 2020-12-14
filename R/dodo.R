@@ -103,7 +103,7 @@ else
 opts = list(
     data       = data,
     parameters = init,
-    random     = char(beta0, cc_vec, ccxage_vec, mu_sm, si_sm, nu_sm, ta_sm, ln_sm),
+    random     = char(cc_vec, ccxage_vec, mu_sm, si_sm, nu_sm, ta_sm),
     silent     = 0,
     DLL        = 'mixtmb', 
     map        = fixpars
