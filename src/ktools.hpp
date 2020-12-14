@@ -9,7 +9,8 @@ namespace ktools {
 
 using namespace Eigen;
   
-#define _eps 1e-8 // An alternative limit argument for the first-order IGRMF
+#define _eps 1e-5 // An alternative limit argument for the first-order IGRMF
+                  // INLA:::inla.set.f.default()$diagonal
 
 // Penalize splines
 template<class Type>
