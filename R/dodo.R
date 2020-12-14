@@ -71,9 +71,9 @@ data = with(dt,
         sd_beta0   = c( 1,   1,   1,    1),
         rw_order   = rw_order,
         R_age      = as.matrix(R_age),
-        sd_age     = c(.1, 0.01),
+        sd_age     = c(.005, 0.01),
         # spatial
-        sd_cc      = c(.1, 0.01),
+        sd_cc      = c(.005, 0.01),
         cc_id      = cc_id - 1,
         R_cc       = R_cc, 
         # interaction
@@ -88,11 +88,11 @@ init = list(
     si_sm        = rep(0, n_age_id),
     nu_sm        = rep(0, n_age_id),
     ta_sm        = rep(0, n_age_id),
-    ln_sm        = rep(log(sd2prec(.1)), 4),
+    ln_sm        = rep(log(sd2prec(.005)), 4),
     cc_vec       = rep(0, n_cc_id),
-    log_cc_e     = log(sd2prec(0.5)),
+    log_cc_e     = log(sd2prec(0.005)),
     ccxage_vec   = rep(0, nrow(R_ccxage)),
-    log_ccxage_e = log(sd2prec(1))
+    log_ccxage_e = log(sd2prec(0.005))
 )
 
 if (fixpars)
