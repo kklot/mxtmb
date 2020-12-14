@@ -43,21 +43,15 @@ n_cc_id    <- length(isoindata)
 cc_id      <- data.table(ISO_A3 = isoindata, cc_id = 1:n_cc_id)
 meta$cc_id <- cc_id
 R_cc       <- diag(n_cc_id)
-R_cc_rank  <- qr(R_cc)$rank # not really needed
 dt %<>% left_join(cc_id, 'ISO_A3')
 
 # Random walk
-age_id <- dt %>% pull(age) %>% unique %>% sort
+age_id   <- dt %>% pull(age) %>% unique %>% sort
 n_age_id <- length(age_id)
 R_age    <- genR(n_age_id, rw_order, scale=FALSE)
 
 # Interaction with age
-R_ccxage      = kronecker(R_cc, R_age)
-R_ccxage_rank = qr(R_ccxage)$rank # not really needed
-
-# interaction id
-# - expand.grid run the first argument first which is not what we want
-# - for the kronecker product, need to switch position of expand.grid
+R_ccxage <- kronecker(R_cc, R_age)
 
 ccxage_id = expand.grid(age_id, 1:n_cc_id) %>% 
   set_colnames(c('age', 'cc_id')) %>% 
@@ -83,7 +77,6 @@ data = with(dt,
         sd_cc      = c(1, 0.1),
         cc_id      = cc_id - 1,
         R_cc       = R_cc, 
-        R_cc_rank  = R_cc_rank,
         # interaction
         ccxage_id  = ccxage_id - 1,
         R_ccxage   = as.matrix(R_ccxage)
