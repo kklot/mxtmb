@@ -55,8 +55,7 @@ R_ccxage <- kronecker(R_cc, R_age)
 
 ccxage_id = expand.grid(age_id, 1:n_cc_id) %>% 
   set_colnames(c('age', 'cc_id')) %>% 
-  mutate(ccxage_id = 1:n()) %>%
-  data.table
+  mutate(ccxage_id = 1:n())
 dt %<>% left_join(ccxage_id)
 
 # TMB metadata and data
@@ -68,13 +67,13 @@ data = with(dt,
         pna        = partner,
         age        = age - min(age),
         # random walk
-        mu_beta0   = c( 3,   0,   0,    0),
+        mu_beta0   = c( 3,   0,   0,   -1),
         sd_beta0   = c( 1,   1,   1,    1),
         rw_order   = rw_order,
         R_age      = as.matrix(R_age),
-        sd_age     = c(1, 0.1),
+        sd_age     = c(.1, 0.01),
         # spatial
-        sd_cc      = c(1, 0.1),
+        sd_cc      = c(.1, 0.01),
         cc_id      = cc_id - 1,
         R_cc       = R_cc, 
         # interaction
@@ -89,11 +88,11 @@ init = list(
     si_sm        = rep(0, n_age_id),
     nu_sm        = rep(0, n_age_id),
     ta_sm        = rep(0, n_age_id),
-    ln_sm        = rep(log(sd2prec(1)), 4),
+    ln_sm        = rep(log(sd2prec(.1)), 4),
     cc_vec       = rep(0, n_cc_id),
-    log_cc_e     = log(sd2prec(10)),
+    log_cc_e     = log(sd2prec(0.5)),
     ccxage_vec   = rep(0, nrow(R_ccxage)),
-    log_ccxage_e = log(sd2prec(10))
+    log_ccxage_e = log(sd2prec(1))
 )
 
 if (fixpars)
