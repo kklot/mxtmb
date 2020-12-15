@@ -37,31 +37,10 @@ Type objective_function<Type>::operator() ()
   prior += ktools::rw(nu_sm, R_age, prec_sm[2], rw_order);
   prior += ktools::rw(ta_sm, R_age, prec_sm[3], rw_order);
 
-  // countries spatial
-  DATA_IVECTOR     (cc_id);
-  DATA_MATRIX      (R_cc);
-  DATA_VECTOR      (sd_cc);
-  PARAMETER_VECTOR (cc_vec);
-  PARAMETER        (log_cc_e);
-  Type cc_e = exp(log_cc_e);
-  prior -= ktools::pc_prec(cc_e, sd_cc(0), sd_cc(1));
-  prior -= ktools::soft_zero_sum(cc_vec);
-  prior += density::GMRF(ktools::prepare_Q(R_cc, cc_e))(cc_vec); 
-
-  // ccxage interaction
-  DATA_IVECTOR     (ccxage_id);
-  DATA_MATRIX      (R_ccxage);
-  PARAMETER_VECTOR (ccxage_vec);
-  PARAMETER        (log_ccxage_e);
-  Type ccxage_e = exp(log_ccxage_e);
-  prior -= ktools::pc_prec(ccxage_e, sd_cc(0), sd_cc(1));
-  prior -= ktools::constraint2D(ccxage_vec.data(), age_id.size(), cc_vec.size());
-  prior += density::GMRF(ktools::prepare_Q(R_ccxage, ccxage_e))(ccxage_vec); 
-
   // Data likelihood
   for (int i = 0; i < pna.size(); i++) {
     Type 
-      mu = exp(beta0[0] + mu_sm[age[i]] + cc_vec[cc_id[i]] + ccxage_vec[ccxage_id[i]]),
+      mu = exp(beta0[0] + mu_sm[age[i]]),
       si = exp(beta0[1] + si_sm[age[i]]), 
       nu =     beta0[2] + nu_sm[age[i]], 
       ta = exp(beta0[3] + ta_sm[age[i]]);    
@@ -71,14 +50,11 @@ Type objective_function<Type>::operator() ()
   dll += prior;
 
   // Reporting
-  int nC = cc_vec.size(), nA = age_id.size();
-  vector<Type> si_vec(nA), nu_vec(nA), ta_vec(nA), mu_vec(nC * nA), rdims(2);
-  rdims << nA, nC;
-  for (int c = 0; c < nC; ++c)
-    for (int a = 0; a < nA; ++a)
-      mu_vec[c * nA + a] = exp( beta0[0] + mu_sm[age_id[a]] + cc_vec[c] + ccxage_vec[c * nA + a] );
+  int nA = age_id.size();
+  vector<Type> si_vec(nA), nu_vec(nA), ta_vec(nA), mu_vec(nA);
 
   for (int a = 0; a < nA; ++a) {
+      mu_vec[a] = exp(beta0[0] + mu_sm[age_id[a]]);
       si_vec[a] = exp(beta0[1] + si_sm[age_id[a]]);
       nu_vec[a] =     beta0[2] + nu_sm[age_id[a]];
       ta_vec[a] = exp(beta0[3] + ta_sm[age_id[a]]);
@@ -87,11 +63,8 @@ Type objective_function<Type>::operator() ()
   REPORT(llrp);
   REPORT(prior);
   REPORT(prec_sm);
-  REPORT(cc_e); REPORT(ccxage_e);
   REPORT(mu_sm); REPORT(si_sm); REPORT(nu_sm); REPORT(ta_sm);
-  REPORT(beta0); REPORT(cc_vec); 
-  REPORT(ccxage_vec);
-  REPORT(rdims);
+  REPORT(beta0);
   REPORT(age_id);
   REPORT(mu_vec); REPORT(si_vec); REPORT(nu_vec); REPORT(ta_vec);
   return dll;
