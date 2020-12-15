@@ -46,7 +46,8 @@ R_cc       <- diag(n_cc_id)
 dt %<>% left_join(cc_id, 'ISO_A3')
 
 # Random walk
-age_id   <- dt %>% pull(age) %>% unique %>% sort
+age_id   <- dt %>% pull(age) %>% range2seq
+meta$min_age <- min(age_id)
 n_age_id <- length(age_id)
 R_age    <- genR(n_age_id, rw_order, scale=FALSE)
 
