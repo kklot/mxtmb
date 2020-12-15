@@ -8,4 +8,4 @@
 #SBATCH --time=32:00:00
 
 export OMP_NUM_THREADS=20
-srun R CMD BATCH --no-save --no-restore fit.R
+srun R CMD BATCH --no-save --no-restore fuchs.R
