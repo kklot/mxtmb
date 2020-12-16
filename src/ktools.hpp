@@ -12,6 +12,28 @@ using namespace Eigen;
 #define _eps 1e-5 // An alternative limit argument for the first-order IGRMF
                   // INLA:::inla.set.f.default()$diagonal
 
+// density frank copula
+template<class Type>
+Type dfrankCopula(Type u1, Type u2, Type alpha, bool give_log = true) {
+    Type 
+      e1 = exp(-alpha * u1),
+      e2 = exp(-alpha * u2),
+      t0 = exp(-alpha) - 1,
+      t1 = log((e1 - 1)/t0),
+      t2 = log((e2 - 1)/t0),
+      t3 = e2 * alpha / t0 / ((e2 - 1)/t0),
+      t4 = e1 * alpha / t0 / ((e1 - 1)/t0),
+      t5 = exp(-(-t1 - t2)),
+      tt = -1/alpha * (
+          t5 * t3 * t4 * t0 / (1 + t5 * t0) - 
+          t5 * t4 * t0 * (t5 * t3 * t0) / pow(1 + t5 * t0, 2)
+      );
+    if (give_log)
+      return log(tt);
+    else
+      return tt;
+}
+
 // Penalize splines
 template<class Type>
 Type p_spline(vector<Type> betas, Type penalty, Eigen::SparseMatrix<Type> S) {
