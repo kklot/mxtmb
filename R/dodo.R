@@ -47,9 +47,13 @@ data = with(dt,
 init = list(
     beta0_w      = data$mu_beta0,
     beta0_m      = data$mu_beta0,
-    cc_vec       = rep(0, n_cc_id),
-    log_cc_e     = log(sd2prec(1)),
-    alpha        = 1
+    alpha        = 1,
+    cc_vec       = rep(0, n_cc_id), # alpha
+    cc_mu_m      = rep(0, n_cc_id),
+    cc_mu_w      = rep(0, n_cc_id),
+    cc_si_m      = rep(0, n_cc_id),
+    cc_si_w      = rep(0, n_cc_id),
+    log_cc_e     = log(sd2prec(1))
 )
 
 if (fixpars)
@@ -60,7 +64,7 @@ else
 opts = list(
     data       = data,
     parameters = init,
-    random     = char(cc_vec),
+    random     = char(cc_vec, cc_mu_m, cc_mu_w, cc_si_m, cc_si_w),
     silent     = 0,
     DLL        = 'mixtmb', 
     map        = fixpars
@@ -71,6 +75,8 @@ if (test)
 
 # Fit
 library(TMB)
+TMB::openmp(1)
+TMB::config(tape.parallel=0, optimize.instantly=1, DLL="mixtmb")
 
 openmp(n_cores)
 config(tape.parallel=0, optimize.instantly=1, DLL="mixtmb")

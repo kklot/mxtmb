@@ -33,34 +33,70 @@ Type objective_function<Type>::operator() ()
   prior -= ktools::soft_zero_sum(cc_vec);
   prior += density::GMRF(ktools::prepare_Q(R_cc, cc_e))(cc_vec); 
 
-  // Marginal likelihood
+  // iid mu
+  PARAMETER_VECTOR(cc_mu_m);
+  prior -= ktools::soft_zero_sum(cc_mu_m);
+  prior -= dnorm(cc_mu_m, Type(0), Type(1), true).sum();
+
+  PARAMETER_VECTOR(cc_mu_w);
+  prior -= ktools::soft_zero_sum(cc_mu_w);
+  prior -= dnorm(cc_mu_w, Type(0), Type(1), true).sum();
+
+  PARAMETER_VECTOR(cc_si_m);
+  prior -= ktools::soft_zero_sum(cc_si_m);
+  prior -= dnorm(cc_si_m, Type(0), Type(1), true).sum();
+
+  PARAMETER_VECTOR(cc_si_w);
+  prior -= ktools::soft_zero_sum(cc_si_w);
+  prior -= dnorm(cc_si_w, Type(0), Type(1), true).sum();
+
+  // Copula
+  PARAMETER(alpha);
+  prior -= dnorm(alpha,  Type(8), Type(3), true);
   vector<Type> u_m(N), u_w(N);
   for (int i = 0; i < N; i++) {
+    int j = cc_id[i];
     Type
-      mum = exp(beta0_m[0]), 
-      muw = exp(beta0_w[0]),
-      sim = exp(beta0_m[1]), 
-      siw = exp(beta0_w[1]), 
+      mum = exp(beta0_m[0] + cc_mu_m[j]), 
+      muw = exp(beta0_w[0] + cc_mu_w[j]),
+      sim = exp(beta0_m[1] + cc_si_m[j]), 
+      siw = exp(beta0_w[1] + cc_si_w[j]),
       num =     beta0_m[2], 
       nuw =     beta0_w[2], 
       tam = exp(beta0_m[3]),
       taw = exp(beta0_w[3]);
+    // Marginal likelihood
     dll -= dSHASHo(w_age[i], muw, siw, nuw, taw, true);
     dll -= dSHASHo(m_age[i], mum, sim, num, tam, true);
-    u_w[i] = pSHASHo(w_age[i], muw, siw, nuw, taw);
-    u_m[i] = pSHASHo(m_age[i], mum, sim, num, tam);
+    // Copula
+    Type
+      u_w = pSHASHo(w_age[i], muw, siw, nuw, taw),
+      u_m = pSHASHo(m_age[i], mum, sim, num, tam);
+    dll -= ktools::dfrankCopula(u_w, u_m, alpha + cc_vec[j], true);
   }
-  // Copula
-  PARAMETER(alpha);
-  for (int i = 0; i < N; i++)
-    dll -= ktools::dfrankCopula(u_w[i], u_m[i], alpha + cc_vec[cc_id[i]], true);
   
   Type llrp = dll;
   dll += prior;
-  
+  vector<Type>
+    a_v  = alpha + cc_vec.array(),
+    mu_m = exp(beta0_m[0] + cc_mu_m.array()), 
+    mu_w = exp(beta0_w[0] + cc_mu_w.array()), 
+    si_m = exp(beta0_m[1] + cc_si_m.array()),
+    si_w = exp(beta0_w[1] + cc_si_w.array());
+  Type
+    nu_m =     beta0_m[2],
+    nu_w =     beta0_w[2],
+    ta_m = exp(beta0_m[3]),
+    ta_w = exp(beta0_w[3]);
+
   REPORT(prior); REPORT(llrp);
   REPORT(cc_e); 
   REPORT(alpha); 
-  REPORT(beta0_w); REPORT(beta0_m); REPORT(cc_vec); 
+  REPORT(beta0_w); REPORT(beta0_m); 
+  REPORT(a_v);
+  REPORT(mu_m); REPORT(mu_w);
+  REPORT(si_m); REPORT(si_w);
+  REPORT(nu_m); REPORT(nu_w);
+  REPORT(ta_m); REPORT(ta_w);
   return dll;
 }
