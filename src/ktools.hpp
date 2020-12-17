@@ -12,6 +12,23 @@ using namespace Eigen;
 #define _eps 1e-5 // An alternative limit argument for the first-order IGRMF
                   // INLA:::inla.set.f.default()$diagonal
 
+// density gumbel copula
+template<class Type>
+Type dgumbelCopula(Type u1, Type u2, Type a, bool give_log = true) {
+    Type 
+      l1  = -log(u1),
+      l2  = -log(u2),
+      t12 = l1^a + l2^a,
+      A   = 1/a,
+      cdf = exp(-t12^A),
+      tt  = (l1 * l2)^(a-1) * a / (u1 * u2),
+      pdf = cdf * tt * ( t12^(2*A-2) / a  -  t12^(A - 2) * (A -1) );
+    if (give_log)
+      return log(pdf);
+    else
+      return pdf;
+}
+
 // density frank copula
 template<class Type>
 Type dfrankCopula(Type u1, Type u2, Type alpha, bool give_log = true) {
