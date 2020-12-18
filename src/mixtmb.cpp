@@ -52,7 +52,7 @@ Type objective_function<Type>::operator() ()
 
   // Copula
   PARAMETER(alpha);
-  prior -= dnorm(alpha,  Type(8), Type(3), true);
+  prior -= dnorm(alpha,  Type(8), Type(1), true);
   vector<Type> u_m(N), u_w(N);
   for (int i = 0; i < N; i++) {
     int j = cc_id[i];
