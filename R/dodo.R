@@ -38,6 +38,7 @@ data = with(dt,
         mu_beta0   = c( 3,   0,   0,   -1),
         sd_beta0   = c( 1,   1,   1,    1),
         # spatial
+        sd_iid     = rep(.5,  4),
         sd_cc      = c(1, 0.1),
         cc_id      = cc_id - 1,
         R_cc       = R_cc

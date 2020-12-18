@@ -35,20 +35,21 @@ Type objective_function<Type>::operator() ()
 
   // iid mu
   PARAMETER_VECTOR(cc_mu_m);
+  DATA_VECTOR(sd_iid);
   prior -= ktools::soft_zero_sum(cc_mu_m);
-  prior -= dnorm(cc_mu_m, Type(0), Type(1), true).sum();
+  prior -= dnorm(cc_mu_m, Type(0), sd_iid[0], true).sum();
 
   PARAMETER_VECTOR(cc_mu_w);
   prior -= ktools::soft_zero_sum(cc_mu_w);
-  prior -= dnorm(cc_mu_w, Type(0), Type(1), true).sum();
+  prior -= dnorm(cc_mu_w, Type(0), sd_iid[1], true).sum();
 
   PARAMETER_VECTOR(cc_si_m);
   prior -= ktools::soft_zero_sum(cc_si_m);
-  prior -= dnorm(cc_si_m, Type(0), Type(1), true).sum();
+  prior -= dnorm(cc_si_m, Type(0), sd_iid[2], true).sum();
 
   PARAMETER_VECTOR(cc_si_w);
   prior -= ktools::soft_zero_sum(cc_si_w);
-  prior -= dnorm(cc_si_w, Type(0), Type(1), true).sum();
+  prior -= dnorm(cc_si_w, Type(0), sd_iid[3], true).sum();
 
   // Copula
   PARAMETER(alpha);
