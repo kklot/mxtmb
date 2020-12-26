@@ -53,6 +53,7 @@ Type dgumbelCopula(Type u1, Type u2, Type a, bool give_log = true) {
 // density frank copula
 template<class Type>
 Type dfrankCopula(Type u1, Type u2, Type alpha, bool give_log = true) {
+    alpha += _eps;
     Type 
       e1 = exp(-alpha * u1),
       e2 = exp(-alpha * u2),
