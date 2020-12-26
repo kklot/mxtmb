@@ -10,7 +10,8 @@ meta$seed <- 2020
 
 # Read and prep data
 
-dt = fbi %>%
+dt = fbi %>% 
+  filter(age <= 80) %>% filter(partner <= 90) %>%
   mutate(w_age = if_else(sex=='male', partner, age)) %>% 
   mutate(m_age   = if_else(sex=='male', age, partner)) %>% 
   dplyr::select(ISO_A3, w_age, m_age, sex, direction)
