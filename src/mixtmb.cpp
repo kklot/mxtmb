@@ -35,7 +35,10 @@ Type objective_function<Type>::operator() ()
 
   // iid mu
   PARAMETER_VECTOR(cc_mu_m);
-  DATA_VECTOR(sd_iid);
+  PARAMETER_VECTOR(ln_sd_iid);
+  prior -= dlgamma(ln_sd_iid, Type(1), Type(1e-3), true).sum();
+  vector<Type> sd_iid = exp(ln_sd_iid);
+
   prior -= ktools::soft_zero_sum(cc_mu_m);
   prior -= dnorm(cc_mu_m, Type(0), sd_iid[0], true).sum();
 
