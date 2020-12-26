@@ -36,11 +36,10 @@ data = with(dt,
         # meta
         w_age = w_age,
         m_age = m_age,
-        mu_beta0   = c( 3,   0,   0,   -1),
-        sd_beta0   = c( 1,   1,   1,    1),
+        mu_beta0   = c( 2,  2,  1, .5),
+        sd_beta0   = c(.02, .02, .02, .02),
         # spatial
-        sd_iid     = rep(.5,  4),
-        sd_cc      = c(1, 0.1),
+        sd_cc      = c(.1, 0.1),
         cc_id      = cc_id - 1,
         R_cc       = R_cc
     )
@@ -49,13 +48,14 @@ data = with(dt,
 init = list(
     beta0_w      = data$mu_beta0,
     beta0_m      = data$mu_beta0,
-    alpha        = 1,
+    alpha        = 8,
     cc_vec       = rep(0, n_cc_id), # alpha
     cc_mu_m      = rep(0, n_cc_id),
     cc_mu_w      = rep(0, n_cc_id),
     cc_si_m      = rep(0, n_cc_id),
     cc_si_w      = rep(0, n_cc_id),
-    log_cc_e     = log(sd2prec(1))
+    log_cc_e     = log(sd2prec(.1)),
+    ln_sd_iid    = rep(log(.02),  4)
 )
 
 if (fixpars)
