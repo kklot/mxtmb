@@ -76,10 +76,7 @@ if (test)
     browser()
 
 # Fit
-library(TMB)
-TMB::openmp(1)
-TMB::config(tape.parallel=0, optimize.instantly=1, DLL="mixtmb")
-
+library(mixtmb)
 openmp(n_cores)
 config(tape.parallel=0, optimize.instantly=1, DLL="mixtmb")
 

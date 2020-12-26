@@ -11,8 +11,22 @@ Description: What the package does (one paragraph).
 LinkingTo: 
     TMB, 
     RcppEigen
-Depends: 
-    TMB
+Imports:
+    ktools,
+    Matrix,
+    R6,
+    TMB,
+    dplyr,
+    ggplot2,
+    magrittr,
+    methods,
+    mvtnorm,
+    tidyr
+Suggests:
+    knitr,
+    rmarkdown
+Remotes:
+    kklot/ktools
 License: What license it uses
 Encoding: UTF-8
 LazyData: true
