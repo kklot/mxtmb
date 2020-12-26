@@ -12,6 +12,27 @@ using namespace Eigen;
 #define _eps 1e-5 // An alternative limit argument for the first-order IGRMF
                   // INLA:::inla.set.f.default()$diagonal
 
+template <class Type>
+Type dSHASHo(Type x, Type mu, Type sigma, Type nu, Type tau, int give_log = 0) {
+    Type 
+      z = (x-mu)/sigma, 
+      c = cosh(tau*log(z+sqrt(z*z+1))-nu), 
+      r = sinh(tau*log(z+sqrt(z*z+1))-nu),
+      logres = -log(sigma) + log(tau) -0.5*log(2*M_PI) -0.5*log(1+(z*z)) +log(c) -0.5*(r*r);
+    if(!give_log) return exp(logres);
+    else return logres;
+}
+
+template <class Type>
+Type pSHASHo(Type q,Type mu,Type sigma,Type nu,Type tau,int give_log=0) {
+    Type 
+      z = (q-mu)/sigma, 
+      r = sinh(tau * log(z+sqrt(z*z+1)) - nu), 
+      p = pnorm(r);
+    if (!give_log) return p;
+    else return log(p);
+}
+
 // density gumbel copula
 template<class Type>
 Type dgumbelCopula(Type u1, Type u2, Type a, bool give_log = true) {

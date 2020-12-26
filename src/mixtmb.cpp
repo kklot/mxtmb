@@ -68,12 +68,12 @@ Type objective_function<Type>::operator() ()
       tam = exp(beta0_m[3]),
       taw = exp(beta0_w[3]);
     // Marginal likelihood
-    dll -= dSHASHo(w_age[i], muw, siw, nuw, taw, true);
-    dll -= dSHASHo(m_age[i], mum, sim, num, tam, true);
+    dll -= ktools::dSHASHo(w_age[i], muw, siw, nuw, taw, true);
+    dll -= ktools::dSHASHo(m_age[i], mum, sim, num, tam, true);
     // Copula
     Type
-      u_w = pSHASHo(w_age[i], muw, siw, nuw, taw),
-      u_m = pSHASHo(m_age[i], mum, sim, num, tam);
+      u_w = ktools::pSHASHo(w_age[i], muw, siw, nuw, taw),
+      u_m = ktools::pSHASHo(m_age[i], mum, sim, num, tam);
     dll -= ktools::dfrankCopula(u_w, u_m, alpha + cc_vec[j], true);
   }
   
