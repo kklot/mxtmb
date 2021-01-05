@@ -34,25 +34,45 @@ Type objective_function<Type>::operator() ()
   prior += density::GMRF(ktools::prepare_Q(R_cc, cc_e))(cc_vec); 
 
   // iid mu
-  PARAMETER_VECTOR(cc_mu_m);
   PARAMETER_VECTOR(ln_sd_iid);
   prior -= dlgamma(ln_sd_iid, Type(1), Type(1e-3), true).sum();
   vector<Type> sd_iid = exp(ln_sd_iid);
 
-  prior -= ktools::soft_zero_sum(cc_mu_m);
-  prior -= dnorm(cc_mu_m, Type(0), sd_iid[0], true).sum();
+  // location
+  PARAMETER_VECTOR(cc_mu_m);
+    prior -= dnorm(cc_mu_m, Type(0), sd_iid[0], true).sum();
+    prior -= ktools::soft_zero_sum(cc_mu_m);
 
   PARAMETER_VECTOR(cc_mu_w);
-  prior -= ktools::soft_zero_sum(cc_mu_w);
-  prior -= dnorm(cc_mu_w, Type(0), sd_iid[1], true).sum();
-
+    prior -= dnorm(cc_mu_w, Type(0), sd_iid[1], true).sum();
+    prior -= ktools::soft_zero_sum(cc_mu_w);
+  
+  // scale
   PARAMETER_VECTOR(cc_si_m);
-  prior -= ktools::soft_zero_sum(cc_si_m);
-  prior -= dnorm(cc_si_m, Type(0), sd_iid[2], true).sum();
+    prior -= dnorm(cc_si_m, Type(0), sd_iid[2], true).sum();
+    prior -= ktools::soft_zero_sum(cc_si_m);
 
   PARAMETER_VECTOR(cc_si_w);
-  prior -= ktools::soft_zero_sum(cc_si_w);
-  prior -= dnorm(cc_si_w, Type(0), sd_iid[3], true).sum();
+    prior -= dnorm(cc_si_w, Type(0), sd_iid[3], true).sum();
+    prior -= ktools::soft_zero_sum(cc_si_w);
+
+  // skew
+  PARAMETER_VECTOR(cc_nu_m);
+    prior -= dnorm(cc_nu_m, Type(0), sd_iid[2], true).sum();
+    prior -= ktools::soft_zero_sum(cc_nu_m);
+
+  PARAMETER_VECTOR(cc_nu_w);
+    prior -= dnorm(cc_nu_w, Type(0), sd_iid[3], true).sum();
+    prior -= ktools::soft_zero_sum(cc_nu_w);
+    
+  // kurtosis
+  PARAMETER_VECTOR(cc_ta_m);
+    prior -= dnorm(cc_ta_m, Type(0), sd_iid[2], true).sum();
+    prior -= ktools::soft_zero_sum(cc_ta_m);
+
+  PARAMETER_VECTOR(cc_ta_w);
+    prior -= dnorm(cc_ta_w, Type(0), sd_iid[3], true).sum();
+    prior -= ktools::soft_zero_sum(cc_ta_w);
 
   // Copula
   PARAMETER(alpha);
@@ -61,14 +81,14 @@ Type objective_function<Type>::operator() ()
   for (int i = 0; i < N; i++) {
     int j = cc_id[i];
     Type
-      mum = exp(beta0_m[0] + cc_mu_m[j]), 
+      mum = exp(beta0_m[0] + cc_mu_m[j]),
       muw = exp(beta0_w[0] + cc_mu_w[j]),
-      sim = exp(beta0_m[1] + cc_si_m[j]), 
+      sim = exp(beta0_m[1] + cc_si_m[j]),
       siw = exp(beta0_w[1] + cc_si_w[j]),
-      num =     beta0_m[2], 
-      nuw =     beta0_w[2], 
-      tam = exp(beta0_m[3]),
-      taw = exp(beta0_w[3]);
+      num =     beta0_m[2] + cc_nu_m[j],
+      nuw =     beta0_w[2] + cc_nu_w[j],
+      tam = exp(beta0_m[3] + cc_ta_m[j]),
+      taw = exp(beta0_w[3] + cc_ta_w[j]);
     // Marginal likelihood
     dll -= ktools::dSHASHo(w_age[i], muw, siw, nuw, taw, true);
     dll -= ktools::dSHASHo(m_age[i], mum, sim, num, tam, true);
@@ -86,12 +106,11 @@ Type objective_function<Type>::operator() ()
     mu_m = exp(beta0_m[0] + cc_mu_m.array()), 
     mu_w = exp(beta0_w[0] + cc_mu_w.array()), 
     si_m = exp(beta0_m[1] + cc_si_m.array()),
-    si_w = exp(beta0_w[1] + cc_si_w.array());
-  Type
-    nu_m =     beta0_m[2],
-    nu_w =     beta0_w[2],
-    ta_m = exp(beta0_m[3]),
-    ta_w = exp(beta0_w[3]);
+    si_w = exp(beta0_w[1] + cc_si_w.array()),
+    nu_m =    (beta0_m[2] + cc_nu_m.array()),
+    nu_w =    (beta0_w[2] + cc_nu_w.array()),
+    ta_m = exp(beta0_m[3] + cc_ta_m.array()),
+    ta_w = exp(beta0_w[3] + cc_ta_w.array());
 
   REPORT(prior); REPORT(llrp);
   REPORT(cc_e); 

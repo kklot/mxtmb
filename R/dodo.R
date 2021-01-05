@@ -54,6 +54,10 @@ init = list(
     cc_mu_w      = rep(0, n_cc_id),
     cc_si_m      = rep(0, n_cc_id),
     cc_si_w      = rep(0, n_cc_id),
+    cc_nu_m      = rep(0, n_cc_id),
+    cc_nu_w      = rep(0, n_cc_id),
+    cc_ta_m      = rep(0, n_cc_id),
+    cc_ta_w      = rep(0, n_cc_id),
     log_cc_e     = log(sd2prec(.1)),
     ln_sd_iid    = rep(log(.02),  4)
 )
