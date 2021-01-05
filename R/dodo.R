@@ -70,7 +70,12 @@ else
 opts = list(
     data       = data,
     parameters = init,
-    random     = char(cc_vec, cc_mu_m, cc_mu_w, cc_si_m, cc_si_w),
+    random     = char(
+        cc_vec, 
+        cc_mu_m, cc_mu_w, 
+        cc_si_m, cc_si_w, 
+        cc_nu_m, cc_nu_w,
+        cc_ta_m, cc_ta_w),
     silent     = 0,
     DLL        = 'mixtmb', 
     map        = fixpars
@@ -86,6 +91,7 @@ config(tape.parallel=0, optimize.instantly=1, DLL="mixtmb")
 
 obj = do.call('MakeADFun', opts)
 runSymbolicAnalysis(obj)
+obj$env$inner.control$tol10 = 0
 fit = nlminb(obj$par, obj$fn, obj$gr)
 rp  = obj$report()
 
